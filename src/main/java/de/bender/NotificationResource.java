@@ -1,12 +1,20 @@
 package de.bender;
 
+import io.smallrye.reactive.messaging.annotations.Broadcast;
+import org.eclipse.microprofile.reactive.messaging.Channel;
+import org.eclipse.microprofile.reactive.messaging.Emitter;
+import org.reactivestreams.Publisher;
+
 import javax.enterprise.context.ApplicationScoped;
+import javax.inject.Inject;
 import javax.ws.rs.GET;
 import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
 import javax.ws.rs.sse.Sse;
 import javax.ws.rs.sse.SseBroadcaster;
 import javax.ws.rs.sse.SseEventSink;
@@ -15,25 +23,25 @@ import javax.ws.rs.sse.SseEventSink;
 @Path("/notifications")
 public class NotificationResource {
 
-    Sse sse;
-    SseBroadcaster sseBroadcaster;
+    @Inject
+    @Channel("notifications")
+    Publisher<String> prices;
 
-    @Context
-    public void setSse(Sse sse) {
-        this.sse = sse;
-        this.sseBroadcaster = sse.newBroadcaster();
-    }
+    @Inject
+    @Channel("notifications")
+    @Broadcast
+    Emitter<String> priceEmitter;
 
     @GET
     @Produces(MediaType.SERVER_SENT_EVENTS)
-    public void register(@Context SseEventSink eventSink, @Context Sse sse){
-        eventSink.send(sse.newEvent("Welcome!"));
-        this.sseBroadcaster.register(eventSink);
+    public Publisher<String> stream() {
+        return prices;
     }
 
     @PUT
-    @Produces(MediaType.SERVER_SENT_EVENTS)
-    public void broadcast(){
-        this.sseBroadcaster.broadcast(sse.newEvent("test"));
+    // @Produces(MediaType.SERVER_SENT_EVENTS)
+    public Response test() {
+        priceEmitter.send("test");
+        return Response.ok().build();
     }
 }
